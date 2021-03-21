@@ -10,3 +10,5 @@ function uuidv4() {
   }
 
   document.getElementById("sessionId").value = uuidv4();
+  document.getElementById("userInput").value = "test1";
+  

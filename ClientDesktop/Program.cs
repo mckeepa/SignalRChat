@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Configuration;
 
 namespace ClientDesktop
 {
@@ -9,28 +10,46 @@ namespace ClientDesktop
     {
         static void Main(string[] args)
         {
+        
+            var sessionId = "715c5034-e97c-48b1-b461-2c411e398972";
 
-            var connection = new HubConnectionBuilder()
-                .WithUrl("http://localhost:5000/ChatHub", (opts) =>
-                    {
-                        opts.HttpMessageHandlerFactory = (message) =>
-                        {
-                            if (message is HttpClientHandler clientHandler)
-                                // bypass SSL certificate
-                                clientHandler.ServerCertificateCustomValidationCallback +=
-                                    (sender, certificate, chain, sslPolicyErrors) => { return true; };
-                            return message;
-                        };
-                    })
-                .WithAutomaticReconnect()
-                .Build();
+            if (args.Length > 0) sessionId = args[0];
+            
+            // Create the connection.
+            HubConnection connection = SignalRConnection.ConnectToMessageHub("http://localhost:5000/" , "ChatHub");
 
-            connection.Closed += async (error) =>
+            try
             {
-                await Task.Delay(new Random().Next(0,5) * 1000);
-                await connection.StartAsync();
-            };
+                connection.StartAsync().ContinueWith(task =>
+                {
+                    if (task.IsFaulted)
+                    {
+                        Console.WriteLine("There was an error opening the connection:{0}", task.Exception.GetBaseException());
+                    }
+                    else
+                    {
+                        Console.WriteLine("Connected");
+                        connection.InvokeAsync("Register","test1", sessionId, "TARGET").Wait();
+            
+                    }
+                }).Wait();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Error: " + ex.Message);
+            }
 
+            connection.Reconnected += connectionId =>
+            {
+                Console.WriteLine("Reconnected. connectionId:" + connectionId);
+                connection.InvokeAsync("Register","test1", sessionId, "TARGET").Wait();
+            
+                // Notify users the connection was reestablished.
+                // Start dequeuing messages queued while reconnecting if any.
+
+                return Task.CompletedTask;
+            };
+            
             connection.Reconnecting += error =>
             {
                 Console.WriteLine("Re-connecting: " + connection.State + " " + HubConnectionState.Reconnecting);
@@ -40,85 +59,77 @@ namespace ClientDesktop
                 return Task.CompletedTask;
             };
 
-            try
-            {
-                connection.StartAsync().ContinueWith(task => {
-                    if (task.IsFaulted) {
-                        Console.WriteLine("There was an error opening the connection:{0}",
-                                        task.Exception.GetBaseException());
-                    } else {
-                        Console.WriteLine("Connected");
-                    }
-                }).Wait();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine("Error: " + ex.Message);
-            }
 
-            connection.On<string>("ReceiveTextMessage", param => {
-                Console.WriteLine("Received Text Message:" + param);
+
+            connection.On<string,string>("Registered", ( clientType, connectionId) =>
+            {
+                Console.WriteLine("### Registered ###");
+                Console.WriteLine("Registered:" + clientType );
+                Console.WriteLine("Connect Id" + connectionId);
+                Console.WriteLine();
             });
 
-            connection.On<string, string, string>("ReceiveMessage", (user, sessiontoken, message) => {
-                Console.WriteLine("Received  Message User:" + user + " SessionToken:" + sessiontoken +" Message: " + message );
+            connection.On<string>("ReceiveTextMessage", param =>
+            {
+                Console.WriteLine("### ReceiveMessage ###");
+                Console.WriteLine("Received Text Message:" + param);
+                Console.WriteLine();
+            });
+
+            connection.On<string, string, string, string>("ReceiveMessage", (user, sessiontoken, message, fromConnectionID) =>
+            {
+                Console.WriteLine("### ReceiveMessage ###");
+                Console.WriteLine("Received From: " + fromConnectionID + "\\" + user );
+                Console.WriteLine("SessionToken:" + sessiontoken);
+                Console.WriteLine("Message: " + message);
+                Console.WriteLine();
             });
 
             var command = "";
             Console.WriteLine("Enter message or type 'exit' to close console.");
-            while (command.Trim().ToUpper() != "EXIT")
+            
+            // connection.InvokeAsync("Register","test1", sessionId, "TARGET").Wait();
+                  
+            while (true)
             {
-
+                Console.WriteLine();
+                Console.WriteLine("Connection ID:" + connection.ConnectionId);
+                Console.WriteLine("Session ID:" + sessionId);
+                Console.WriteLine();
                 command = Console.ReadLine();
-                try
+                var commandArgs = command.Trim().ToUpper().Split(" ");
+                
+                switch (commandArgs[0])
                 {
-                    connection.InvokeAsync("SendTextMessage",command).Wait();
-                }
-                catch (Exception ex)
-                {                
-                    Console.WriteLine("Error: " + ex.Message);                
+                    case "EXIT":
+                        connection.StopAsync().Wait();
+                        break;
+
+                    case "SESSIONID:":
+                        sessionId = commandArgs[1];
+                        connection.InvokeAsync("Register","test1", sessionId, "TARGET").Wait();
+                        Console.WriteLine("Connection ID:" + connection.ConnectionId);
+                        Console.WriteLine("Session ID:" + sessionId);
+                        break;
+
+                    case "ALL:":
+                        connection.InvokeAsync("SendTextMessage", command).Wait();
+                        break;
+
+                    default:
+                        try
+                        {
+                            connection.InvokeAsync("SendMessage", "test1", sessionId, command).Wait();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine("Error: " + ex.Message);
+                        }
+
+                        break;
                 }
             }
-
-            connection.StopAsync().Wait();
-
-
-          
-            //  //Set connection
-            // // var connection = new HubConnection("https://localhost:5001/");
-            // // //Make proxy to hub based on hub name on server
-            // // var myHub = connection.CreateHubProxy("chatHub");
-            // //Start connection
-
-            // connection.Start().ContinueWith(task => {
-            //     if (task.IsFaulted) {
-            //         Console.WriteLine("There was an error opening the connection:{0}",
-            //                           task.Exception.GetBaseException());
-            //     } else {
-            //         Console.WriteLine("Connected");
-            //     }
-
-            // }).Wait();
-
-            // myHub.Invoke<string>("Send", "HELLO World ").ContinueWith(task => {
-            // connection.InvokeAsync<string>("SendTextMessage", "HELLO World ").ContinueWith(task => {
-            //      if (task.IsFaulted) {
-            //          Console.WriteLine("There was an error calling send: {0}",
-            //                            task.Exception.GetBaseException());
-            //      } else {
-            //          Console.WriteLine(task.Result);
-            //      }
-            // });
-
-            // myHub.On<string>("addMessage", param => {
-            //     Console.WriteLine(param);
-            // });
-
-            // myHub.Invoke<string>("DoSomething", "I'm doing something!!!").Wait();
-
-
-            // Console.Read();
-            // connection.Stop();
         }
+      
     }
 }
