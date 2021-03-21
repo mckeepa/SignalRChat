@@ -33,5 +33,7 @@ msbuild.log
 msbuild.err
 msbuild.wrn
 
+[Pp]ackages
+[Ll]ib
 # Visual Studio 2015
 .vs/

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2018
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SignalR-WInFormReciver", "SignalR-WInFormReciver.csproj", "{271D32FB-B488-497D-96B2-D715EB9F9E07}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{271D32FB-B488-497D-96B2-D715EB9F9E07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{271D32FB-B488-497D-96B2-D715EB9F9E07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{271D32FB-B488-497D-96B2-D715EB9F9E07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{271D32FB-B488-497D-96B2-D715EB9F9E07}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {80166C23-551D-468C-A5CA-6A633C470756}
+	EndGlobalSection
+EndGlobal
